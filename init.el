@@ -222,12 +222,23 @@
 
 ;; Python
 (use-package elpy
+  :config
+  (elpy-enable t)
   :hook
   (python-mode))
-(use-package company-jedi)
-  ;:config
+(use-package company-jedi
+  :config
+  (add-to-list 'company-backends 'company-jedi)
+  :bind
+  ("C-c j" . company-jedi)
+  :hook
+  (python-mode))
+(use-package pyvenv
+  :hook
+  ((python-mode . pyenv-mode)))
+  ;config
   ;(python-mode . company-backends company-jedi))
-(add-hook 'python-mode-hook (global-set-key (kbd "C-c j") 'company-jedi))
+;(add-hook 'python-mode-hook (global-set-key (kbd "C-c j") 'company-jedi))
 (use-package lsp-jedi)
 
 ;; LaTeX
@@ -242,7 +253,7 @@
  '(doom-modeline-mode t)
  '(line-number-mode nil)
  '(package-selected-packages
-   '(lsp-jedi ghub doom-themes doom-one-theme doom-one doom-modeline which-key use-package projectile nyan-mode material-theme magit lsp-ui lsp-latex lsp-java helm-lsp flycheck elpy company-lsp company-jedi))
+   '(pyenv-mode lsp-jedi ghub doom-themes doom-one-theme doom-one doom-modeline which-key use-package projectile nyan-mode material-theme magit lsp-ui lsp-latex lsp-java helm-lsp flycheck elpy company-lsp company-jedi))
  '(show-paren-mode t))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
