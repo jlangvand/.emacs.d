@@ -12,17 +12,26 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
-;; Sensible defaults
+;; Global settings
+(setq-default delete-selection-mode t)
 (setq-default indent-tabs-mode nil)
-(setq-default tab-width 4)
 (setq-default fill-column 80)
+(global-set-key (kbd "C-c C-e") 'eval-buffer)
 
 ;; Nyanyanya
 (use-package nyan-mode
   :config
   (nyan-mode t)
-  (setq-default nyan-bar-length 24)
+  (nyan-start-animation)
+  (nyan-toggle-wavy-trail)
+  (setq-default nyan-bar-length 36)
   (setq-default nyan-minimum-window-width 80))
+
+;; Licence
+(use-package lice
+  :config
+  (setq-default lice:default-license "gpl-3.0"
+                lice:copyright-holder "Joakim Skogø Langvand"))
 
 ;; Remove menubar, toolbar, scrollbars
 (unless (eq window-system 'ns)
@@ -38,7 +47,7 @@
 (use-package doom-modeline
   :ensure t
   :hook (after-init . doom-modeline-mode))
-(use-package all-the-icons) 
+(use-package all-the-icons)
 (setq doom-modeline-buffer-file-name-style 'file-name)
 (use-package ghub
   :config
@@ -58,8 +67,6 @@
   ;; Enable flashing mode-line on errors
   (doom-themes-visual-bell-config)
   
-  ;; Enable custom neotree theme (all-the-icons must be installed!)
-  (doom-themes-neotree-config)
   ;; or for treemacs users
   (setq doom-themes-treemacs-theme "doom-colors") ; use the colorful treemacs theme
   (doom-themes-treemacs-config)
@@ -76,7 +83,8 @@
 (use-package company
   :config
   (global-company-mode t)
-  (setq-default company-minimum-prefix-length 1)
+  (setq-default company-minimum-prefix-length 1
+                company-idle-delay 0)
   :bind
   ("C-M-n" . company-select-next-or-abort)
   ("C-M-p" . company-select-previous-or-abort))
@@ -93,14 +101,18 @@
 (use-package yasnippet
   :config
   (yas-global-mode))
+(use-package yasnippet-snippets)
 
 ;; LSP
 (use-package lsp-mode
   :init
   (setq lsp-prefer-flymake nil)
-  :hook ((lsp-mode . lsp-enable-which-key-integration)
-	 (java-mode)
-	 (java-mode . lsp)))
+  :bind
+  ("C-c C-r" . lsp-rename)
+  :hook
+  ((lsp-mode . lsp-enable-which-key-integration)
+   (java-mode)
+   (java-mode . lsp)))
   ;;:config
   ;;(setq lsp-completion-enable-additional-text-edit nil))
 (use-package lsp-ui
@@ -128,22 +140,12 @@
 (use-package lsp-treemacs)
 
 ;; Flycheck
-(use-package flycheck)
+(use-package flycheck
+  :ensure t
+  :init
+  (global-flycheck-mode))
 
 ;; Java
-(use-package lsp-java
-  :demand t
-  :hook java-mode)
-(use-package flycheck
-  :init
-  (add-to-list 'display-buffer-alist
-               `(,(rx bos "*Flycheck errors*" eos)
-                 (display-buffer-reuse-window
-                  display-buffer-in-side-window)
-                 (side            . bottom)
-                 (reusable-frames . visible)
-                 (window-height   . 0.15))))
-
 (defun my-java-mode-hook ()
   (auto-fill-mode)
   (flycheck-mode)
@@ -157,22 +159,29 @@
   (define-key c-mode-base-map (kbd "C-M-j") 'tkj-insert-serial-version-uuid)
   (define-key c-mode-base-map (kbd "C-m") 'c-context-line-break)
   (define-key c-mode-base-map (kbd "S-<f7>") 'gtags-find-tag-from-here)
-  (lsp)
-
+  (lsp) ; Why doesn't this work?
   ;; Fix indentation for anonymous classes
   (c-set-offset 'substatement-open 0)
   (if (assoc 'inexpr-class c-offsets-alist)
-      (c-set-offset 'inexpr-class 0))
-
-  ;; Indent arguments on the next line as indented body.
-  (c-set-offset 'arglist-intro '++))
+      (c-set-offset 'inexpr-class 0)
+    ;; Indent arguments on the next line as indented body.
+    (c-set-offset 'arglist-intro '++)))
 (add-hook 'java-mode-hook 'my-java-mode-hook)
-
+(use-package lsp-java
+  :demand t)
+(use-package flycheck
+  :init
+  (add-to-list 'display-buffer-alist
+               `(,(rx bos "*Flycheck errors*" eos)
+                 (display-buffer-reuse-window
+                  display-buffer-in-side-window)
+                 (side            . bottom)
+                 (reusable-frames . visible)
+                 (window-height   . 0.15))))
 (defun tkj-projectile-grep-region()
   "Search the project for the text in region"
   (interactive)
   (projectile-grep (buffer-substring (mark) (point))))
-
 (use-package projectile :ensure t)
 (use-package yasnippet :ensure t)
 (use-package lsp-mode :ensure t
@@ -190,13 +199,11 @@
         lsp-modeline-code-actions-enable nil
         lsp-modeline-diagnostics-enable nil
         )
-
   ;; Performance tweaks, see
   ;; https://github.com/emacs-lsp/lsp-mode#performance
-  (setq gc-cons-threshold 100000000)
-  (setq read-process-output-max (* 1024 1024)) ;; 1mb
-  (setq lsp-idle-delay 0.500))
-
+  (setq gc-cons-threshold 100000000
+        read-process-output-max (* 1024 1024) ;; 1mb
+        lsp-idle-delay 0.500))
 (use-package hydra :ensure t)
 (use-package company-lsp :ensure t)
 (use-package lsp-ui
@@ -206,24 +213,30 @@
         lsp-ui-doc-delay 5.0
         lsp-ui-sideline-enable t
         lsp-ui-sideline-show-symbol nil))
-
 (use-package lsp-java
   :ensure t)
-
-;; DAP
 (use-package dap-mode
   :after
   lsp-mode
   :config
   (dap-auto-configure-mode))
 (use-package dap-java
-  :ensure
-  nil)
+  :ensure nil)
+
+;; Gradle
+(use-package gradle-mode)
+
+;; Groovy
+(use-package groovy-mode)
 
 ;; Python
+(add-hook 'python-mode-hook (lambda ()
+                              (message "Debug: python-mode-hook lambda")
+                              (display-line-numbers-mode)
+                              (display-fill-column-indicator-mode)))
 (use-package elpy
   :config
-  (elpy-enable t)
+  (elpy-enable)
   :hook
   (python-mode))
 (use-package company-jedi
@@ -235,7 +248,7 @@
   (python-mode))
 (use-package pyvenv
   :hook
-  ((python-mode . pyenv-mode)))
+  ((python-mode . pyvenv-mode)))
   ;config
   ;(python-mode . company-backends company-jedi))
 ;(add-hook 'python-mode-hook (global-set-key (kbd "C-c j") 'company-jedi))
@@ -244,17 +257,38 @@
 ;; LaTeX
 (use-package lsp-latex)
 
+;; C++
+(use-package modern-cpp-font-lock
+  :ensure t)
+(use-package cmake-ide
+  :config
+  (cmake-ide-setup)
+  :hook
+  (c++-mode))
+(defun my-c++-mode-hook ()
+  (message "Custom c++ mode hook")
+  (require 'lsp-clients)
+  (lsp-clients-register-clangd)
+  (lsp))
+(add-hook 'c++-mode-hook 'my-c++-mode-hook)
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(column-number-mode t)
+ '(debug-on-error t)
+ '(delete-selection-mode t)
  '(doom-modeline-mode t)
+ '(gradle-mode t)
+ '(helm-completion-style 'emacs)
  '(line-number-mode nil)
  '(package-selected-packages
-   '(pyenv-mode lsp-jedi ghub doom-themes doom-one-theme doom-one doom-modeline which-key use-package projectile nyan-mode material-theme magit lsp-ui lsp-latex lsp-java helm-lsp flycheck elpy company-lsp company-jedi))
- '(show-paren-mode t))
+   '(groovy-mode gradle-mode cmake-ide modern-cpp-font-lock yasnippet-snippets lice auto-fill-mode auto-fil-mode pyenv-mode lsp-jedi ghub doom-themes doom-one-theme doom-one doom-modeline which-key use-package projectile nyan-mode material-theme magit lsp-ui lsp-latex lsp-java helm-lsp flycheck elpy company-lsp company-jedi))
+ '(pyvenv-mode t)
+ '(show-paren-mode t)
+ '(yas-global-mode t))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
