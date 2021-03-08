@@ -24,7 +24,7 @@
   (nyan-mode t)
   (nyan-start-animation)
   (nyan-toggle-wavy-trail)
-  (setq-default nyan-bar-length 36)
+  (setq-default nyan-bar-length 24)
   (setq-default nyan-minimum-window-width 80))
 
 ;; Licence
@@ -75,9 +75,10 @@
   (doom-themes-org-config))
 
 ;; FCI
-(add-hook 'text-mode-hook
+(add-hook 'prog-mode-hook
 	  (lambda()
-	    (display-fill-column-indicator-mode t)))
+            (message "Custom programming mode hook")
+	    (linum-mode t)))
 
 ;; Company
 (use-package company
@@ -102,6 +103,9 @@
   :config
   (yas-global-mode))
 (use-package yasnippet-snippets)
+
+;; Indium
+;(use-package indium)
 
 ;; LSP
 (use-package lsp-mode
@@ -145,14 +149,28 @@
   :init
   (global-flycheck-mode))
 
+;; Emacs Lisp
+(defun er-byte-compile-init-dir ()
+  "Byte-compile dotfiles."
+  (interactive)
+  (byte-recompile-directory user-emacs-directory 0))
+(defun er-remove-elc-on-save ()
+  "Remove byte-compiled file on save."
+  (add-hook 'after-save-hook
+            (lambda ()
+              (if (file-exists-p (concat buffer-file-name "c"))
+                  (delete-file (concat buffer-file-name "c"))))
+            nil
+            t))
+(add-hook 'emacs-lisp-mode-hook 'er-remove-elc-on-save)
+
 ;; Java
 (defun my-java-mode-hook ()
+  (message "Custom Java mode hook")
   (auto-fill-mode)
   (flycheck-mode)
-  (git-gutter+-mode)
-  (gtags-mode)
-  (display-fill-column-indicator-mode)
-  (display-line-numbers-mode)
+  ;(git-gutter-mode)
+  ;(gtags-mode)
   (subword-mode)
   (yas-minor-mode)
   (set-fringe-style '(8 . 0))
@@ -230,16 +248,12 @@
 (use-package groovy-mode)
 
 ;; Python
-(add-hook 'python-mode-hook (lambda ()
-                              (message "Debug: python-mode-hook lambda")
-                              (display-line-numbers-mode)
-                              (display-fill-column-indicator-mode)))
-(use-package elpy
-  :config
-  (elpy-enable)
-  :hook
-  (python-mode))
+(use-package elpy)
+;(use-package jedi
+;  :config
+;  (setq-default jedi:complete-on-dot t))
 (use-package company-jedi
+  :ensure t
   :config
   (add-to-list 'company-backends 'company-jedi)
   :bind
@@ -247,12 +261,9 @@
   :hook
   (python-mode))
 (use-package pyvenv
+  :ensure t
   :hook
   ((python-mode . pyvenv-mode)))
-  ;config
-  ;(python-mode . company-backends company-jedi))
-;(add-hook 'python-mode-hook (global-set-key (kbd "C-c j") 'company-jedi))
-(use-package lsp-jedi)
 
 ;; LaTeX
 (use-package lsp-latex)
@@ -270,6 +281,7 @@
   (require 'lsp-clients)
   (lsp-clients-register-clangd)
   (lsp))
+(setq company-clang-arguments '("-std=c++17"))
 (add-hook 'c++-mode-hook 'my-c++-mode-hook)
 
 (custom-set-variables
@@ -278,14 +290,14 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(column-number-mode t)
+ '(display-fill-column-indicator-mode t)
  '(debug-on-error t)
  '(delete-selection-mode t)
  '(doom-modeline-mode t)
  '(gradle-mode t)
  '(helm-completion-style 'emacs)
- '(line-number-mode nil)
  '(package-selected-packages
-   '(groovy-mode gradle-mode cmake-ide modern-cpp-font-lock yasnippet-snippets lice auto-fill-mode auto-fil-mode pyenv-mode lsp-jedi ghub doom-themes doom-one-theme doom-one doom-modeline which-key use-package projectile nyan-mode material-theme magit lsp-ui lsp-latex lsp-java helm-lsp flycheck elpy company-lsp company-jedi))
+   '(groovy-mode gradle-mode cmake-ide modern-cpp-font-lock yasnippet-snippets lice auto-fill-mode pyenv-mode ghub doom-themes doom-one-theme doom-one doom-modeline which-key use-package projectile nyan-mode material-theme magit lsp-ui lsp-latex lsp-java helm-lsp flycheck elpy company-lsp company-jedi))
  '(pyvenv-mode t)
  '(show-paren-mode t)
  '(yas-global-mode t))
